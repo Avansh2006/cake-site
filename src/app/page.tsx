@@ -1,5 +1,6 @@
 import Navigation from "@/components/Navigation";
 import CakeSequence from "@/components/CakeSequence";
+import BakeryExperience from "@/components/BakeryExperience";
 
 export default function Home() {
   return (
@@ -74,6 +75,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <BakeryExperience />
 
       {/* FOOTER */}
       <footer className="relative z-10 pt-32 pb-12 px-6 md:px-12 border-t border-white/5 flex flex-col items-center">

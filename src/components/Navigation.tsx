@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 
 export default function Navigation() {
@@ -45,6 +45,9 @@ export default function Navigation() {
         <a href="#cake" className="hover:text-white transition-colors">The Cake</a>
         <a href="#craft" className="hover:text-white transition-colors">The Craft</a>
         <a href="#layers" className="hover:text-white transition-colors">The Layers</a>
+        <a href="#menu" className="hover:text-white transition-colors">Menu</a>
+        <a href="#experience" className="hover:text-white transition-colors">Process</a>
+        <a href="#visit" className="hover:text-white transition-colors">Visit</a>
       </div>
 
       <div>

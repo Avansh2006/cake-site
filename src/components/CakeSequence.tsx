@@ -227,7 +227,7 @@ export default function CakeSequence() {
         </div>
       )}
 
-      <div ref={containerRef} className="relative w-full h-[600vh]" style={{ backgroundColor: SEQUENCE_BG }}>
+      <div id="cake" ref={containerRef} className="relative w-full h-[600vh]" style={{ backgroundColor: SEQUENCE_BG }}>
         {/* Sticky Canvas */}
         <div className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden" style={{ backgroundColor: SEQUENCE_BG }}>
           <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
