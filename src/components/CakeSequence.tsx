@@ -3,6 +3,59 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 
+const SEQUENCE_BG = "#3F271A";
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getMobileSequenceScale(viewportWidth: number, viewportHeight: number) {
+  const shortestSide = Math.min(viewportWidth, viewportHeight);
+  const longToShort = Math.max(viewportWidth, viewportHeight) / Math.max(1, shortestSide);
+  const compactPhoneFactor = clamp((shortestSide - 320) / (430 - 320), 0, 1);
+  const tallPhoneFactor = clamp((longToShort - 1.65) / (2.1 - 1.65), 0, 1);
+  const scale = 0.88 + compactPhoneFactor * 0.05 + tallPhoneFactor * 0.03;
+
+  return clamp(scale, 0.88, 0.96);
+}
+
+function getFitRect(
+  sourceWidth: number,
+  sourceHeight: number,
+  targetWidth: number,
+  targetHeight: number,
+  mode: "cover" | "contain"
+) {
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = targetWidth / targetHeight;
+
+  let width = targetWidth;
+  let height = targetHeight;
+
+  if (mode === "cover") {
+    if (targetRatio > sourceRatio) {
+      width = targetWidth;
+      height = targetWidth / sourceRatio;
+    } else {
+      height = targetHeight;
+      width = targetHeight * sourceRatio;
+    }
+  } else if (targetRatio > sourceRatio) {
+    height = targetHeight;
+    width = targetHeight * sourceRatio;
+  } else {
+    width = targetWidth;
+    height = targetWidth / sourceRatio;
+  }
+
+  return {
+    width,
+    height,
+    x: (targetWidth - width) / 2,
+    y: (targetHeight - height) / 2,
+  };
+}
+
 export default function CakeSequence() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +118,8 @@ export default function CakeSequence() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const isPortraitMobile = () => window.matchMedia("(orientation: portrait)").matches;
+
     const renderFrame = () => {
       // Smooth interpolation
       currentFrameRef.current += (targetFrameRef.current - currentFrameRef.current) * 0.1;
@@ -76,29 +131,22 @@ export default function CakeSequence() {
       const img = framesRef.current[frameIndex];
       
       if (img && img.complete) {
-        // Fit image nicely into canvas (cover)
-        const canvasRatio = canvas.width / canvas.height;
-        const imgRatio = img.width / img.height;
-        let drawWidth = canvas.width;
-        let drawHeight = canvas.height;
-        let x = 0;
-        let y = 0;
-
-        if (canvasRatio > imgRatio) {
-          drawHeight = canvas.width / imgRatio;
-          y = (canvas.height - drawHeight) / 2;
-        } else {
-          drawWidth = canvas.height * imgRatio;
-          x = (canvas.width - drawWidth) / 2;
-        }
-
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Optional: draw soft background to prevent jarring edges if aspect ratios mismatch heavily
-        ctx.fillStyle = "#AA8B6B";
+        ctx.fillStyle = SEQUENCE_BG;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.drawImage(img, x, y, drawWidth, drawHeight);
+        const mobileScale = isPortraitMobile() ? getMobileSequenceScale(viewportWidth, viewportHeight) : 1;
+        const targetWidth = viewportWidth * mobileScale;
+        const targetHeight = viewportHeight * mobileScale;
+        const rect = getFitRect(img.width, img.height, targetWidth, targetHeight, "cover");
+        const focalY = isPortraitMobile() ? 0.46 : 0.5;
+        const offsetX = (viewportWidth - targetWidth) / 2;
+        const offsetY = (viewportHeight - targetHeight) * focalY;
+
+        ctx.drawImage(img, offsetX + rect.x, offsetY + rect.y, rect.width, rect.height);
       }
 
       rafRef.current = requestAnimationFrame(renderFrame);
@@ -107,10 +155,10 @@ export default function CakeSequence() {
     // Set canvas dimensions
     const resizeCanvas = () => {
       // High-DPI support
-      const dpi = window.devicePixelRatio || 1;
+      const dpi = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpi;
       canvas.height = window.innerHeight * dpi;
-      ctx.scale(dpi, dpi);
+      ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
     };
@@ -165,7 +213,7 @@ export default function CakeSequence() {
     <>
       {/* Loading Screen Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#120D0A] text-[#F5EFE7]">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center text-[#F5EFE7]" style={{ backgroundColor: SEQUENCE_BG }}>
           <div className="text-sm font-sans tracking-[0.3em] font-light uppercase text-[#F5EFE7]/50 mb-8">
             Preparing the experience
           </div>
@@ -179,15 +227,10 @@ export default function CakeSequence() {
         </div>
       )}
 
-      <div ref={containerRef} className="relative w-full h-[600vh] bg-[#120D0A]">
+      <div ref={containerRef} className="relative w-full h-[600vh]" style={{ backgroundColor: SEQUENCE_BG }}>
         {/* Sticky Canvas */}
-        <div className="sticky top-0 left-0 w-full h-screen overflow-hidden">
-          {/* We add a radial gradient overlay over the canvas so it perfectly blends into #120D0A page background */}
-          <div className="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_40%,#120D0A_100%)] opacity-80" />
-          <div className="absolute left-0 bottom-0 w-full h-32 z-10 pointer-events-none bg-gradient-to-t from-[#120D0A] to-transparent" />
-          <div className="absolute left-0 top-0 w-full h-32 z-10 pointer-events-none bg-gradient-to-b from-[#120D0A] to-transparent" />
-          
-          <canvas ref={canvasRef} className="w-full h-full object-cover" />
+        <div className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden" style={{ backgroundColor: SEQUENCE_BG }}>
+          <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
           
           {/* Text Overlays linked to useScroll */}
           <TextOverlays progress={scrollYProgress} />
